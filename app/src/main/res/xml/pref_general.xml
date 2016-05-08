@@ -2,6 +2,11 @@
 
     <SwitchPreference
         android:defaultValue="true"
+        android:key="swh_scan_beep"
+        android:title="@string/swh_scan_beep_title" />
+
+    <SwitchPreference
+        android:defaultValue="true"
         android:key="example_switch"
         android:summary="@string/pref_description_social_recommendations"
         android:title="@string/pref_title_social_recommendations" />

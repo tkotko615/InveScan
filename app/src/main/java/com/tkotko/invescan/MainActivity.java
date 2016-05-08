@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.util.Log;
@@ -169,8 +170,17 @@ public class MainActivity extends AppCompatActivity
 		integrator.setPrompt("請將條碼置於框中掃描");
         // Use a specific camera of the device
 		integrator.setCameraId(0);
+
 		//是否播放提示音
-		integrator.setBeepEnabled(false);
+        integrator.setBeepEnabled(false);
+        //由Setting取值
+        //SharedPreferences sp = getSharedPreferences("pref_general",0);
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean sw_beep = prefs.getBoolean("swh_scan_beep",false);
+        if (sw_beep) {
+            integrator.setBeepEnabled(true);
+        }
+
 		//是否保留掃碼成功時的截圖
 		integrator.setBarcodeImageEnabled(false);
 		integrator.initiateScan();
