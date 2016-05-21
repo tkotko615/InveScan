@@ -31,12 +31,15 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.ksoap2.SoapEnvelope;
+import org.ksoap2.SoapFault;
 import org.ksoap2.serialization.SoapObject;
 import org.ksoap2.serialization.SoapPrimitive;
 import org.ksoap2.serialization.SoapSerializationEnvelope;
 import org.ksoap2.transport.HttpTransportSE;
+import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -63,6 +66,7 @@ public class MainActivity extends AppCompatActivity
     EditText edtScanInput;
 
     ProgressDialog waiting_dialog;
+    String strErrorMsg;
 	
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -311,6 +315,10 @@ public class MainActivity extends AppCompatActivity
 
         if (id == R.id.nav_camera) {
             // Handle the camera action
+        } else if (id == R.id.nav_login) {
+            Intent i = new Intent(this,LoginActivity.class);
+            startActivity(i);
+
         } else if (id == R.id.nav_http) {
             new wsGetHTTP().execute(url);
 
@@ -376,7 +384,14 @@ public class MainActivity extends AppCompatActivity
         @Override
         protected void onPreExecute() {
             //super.onPreExecute();
-            waiting_dialog = ProgressDialog.show(MainActivity.this, "請稍後", "資料更新中", true);
+            waiting_dialog = ProgressDialog.show(MainActivity.this, "請稍後", "資料更新中", true,true,
+                    new DialogInterface.OnCancelListener(){
+                        @Override
+                        public void onCancel(DialogInterface dialog) {
+                            wsGetERP.this.cancel(true);
+                        }
+                    }
+                    );
             assetsList.clear();
         }
 
@@ -391,11 +406,11 @@ public class MainActivity extends AppCompatActivity
             List<Entry> entries = null;
             StringBuilder parString = new StringBuilder();
 
-
+            strErrorMsg="";
             //ERP Web Service
 			SoapObject request = new SoapObject(NAMESPACE, METHOD_NAME);
-			//String request_xml="<Request> <Access> <Authentication user=\"tiptop\" password=\"tiptop\" /> <Connection application=\"\" source=\"192.168.1.2\" />	<Organization name=\"FORMAL_TW\" />	<Locale language=\"zh_tw\" /> </Access> <RequestContent> <Parameter> <Record> <Field name=\"condition\" value=\" ima01 like '85201-03%'\"/> </Record> </Parameter> </RequestContent> </Request>";
-            String request_xml="<Request> <Access> <Authentication user=\"tiptop\" password=\"tiptop\" /> <Connection application=\"\" source=\"192.168.1.2\" />	<Organization name=\"FORMAL_TW\" />	<Locale language=\"zh_tw\" /> </Access> <RequestContent> <Parameter> <Record> <Field name=\"condition\" value=\" faj19 = 't00126'\"/> </Record> </Parameter> </RequestContent> </Request>";
+			//String request_xml="<Request> <Access> <Authentication user=\"tiptop\" password=\"tiptop\" /> <Connection application=\"InveScan\" source=\"192.168.19.16\" />	<Organization name=\"FORMAL_TW\" />	<Locale language=\"zh_tw\" /> </Access> <RequestContent> <Parameter> <Record> <Field name=\"condition\" value=\" ima01 like '85201-03%'\"/> </Record> </Parameter> </RequestContent> </Request>";
+            String request_xml="<Request> <Access> <Authentication user=\"tiptop\" password=\"tiptop\" /> <Connection application=\"InveScan\" source=\"192.168.19.16\" />	<Organization name=\"FORMAL_TW\" />	<Locale language=\"zh_tw\" /> </Access> <RequestContent> <Parameter> <Record> <Field name=\"condition\" value=\" faj19 = 't00126'\"/> </Record> </Parameter> </RequestContent> </Request>";
 			request.addProperty("request",request_xml);			//System.out.println("request=" + request);
 
 			SoapSerializationEnvelope envelope = new SoapSerializationEnvelope(SoapEnvelope.VER11);
@@ -408,8 +423,20 @@ public class MainActivity extends AppCompatActivity
                 final SoapPrimitive response = (SoapPrimitive)envelope.getResponse();
                 ws_result = response.toString();
                 }
+            /*
             catch (Exception e){
                 e.printStackTrace();
+                strErrorMsg = e.getMessage();
+            }*/
+            catch (SoapFault e) {
+                e.printStackTrace();
+                strErrorMsg = "SoapFault: " + e.getMessage();
+            } catch (IOException e) {
+                e.printStackTrace();
+                strErrorMsg = "IOException: " + e.getMessage();
+            } catch (XmlPullParserException e) {
+                e.printStackTrace();
+                strErrorMsg = "XmlPullParserException: " + e.getMessage();
             }
 
 
@@ -443,6 +470,10 @@ public class MainActivity extends AppCompatActivity
                     +"  </ResponseContent>" + "\n"
                     +"</Response>"
             );
+
+            if (ws_result == null){
+                return "";
+            }
 
             ERPXmlParser ERPXmlParser = new ERPXmlParser();
             try {
@@ -495,12 +526,27 @@ public class MainActivity extends AppCompatActivity
                     .setNeutralButton("確定", null)
                     .show();
             */
-			listAdapter = new ArrayAdapter(MainActivity.this,android.R.layout.simple_list_item_1,assetsList);
-            listView.setAdapter(listAdapter);
+            if (s != "") {
+                listAdapter = new ArrayAdapter(MainActivity.this, android.R.layout.simple_list_item_1, assetsList);
+                listView.setAdapter(listAdapter);
+            }else{
+                if (strErrorMsg != ""){
+                    Toast.makeText(getApplicationContext(), strErrorMsg, Toast.LENGTH_SHORT).show();
+                }else {
+                    Toast.makeText(getApplicationContext(), "取無資料或無法連結服務!!", Toast.LENGTH_SHORT).show();
+                }
+            }
 
             waiting_dialog.dismiss();
 			
         }
+
+        /*
+        @Override
+        protected void onCancelled() {
+            waiting_dialog.cancel();
+        }
+        */
     }
 
     private void wsGetERP_old(){

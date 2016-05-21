@@ -3,9 +3,9 @@
 
     <group android:checkableBehavior="single">
         <item
-            android:id="@+id/nav_camera"
-            android:icon="@drawable/ic_menu_camera"
-            android:title="Import" />
+            android:id="@+id/nav_login"
+            android:icon="@drawable/ic_menu_login"
+            android:title="Login" />
         <item
             android:id="@+id/nav_http"
             android:icon="@drawable/ic_menu_http"
@@ -14,6 +14,10 @@
             android:id="@+id/nav_download"
             android:icon="@drawable/ic_menu_download"
             android:title="Download" />
+        <item
+            android:id="@+id/nav_camera"
+            android:icon="@drawable/ic_menu_camera"
+            android:title="Import" />
         <item
             android:id="@+id/nav_manage"
             android:icon="@drawable/ic_menu_manage"
