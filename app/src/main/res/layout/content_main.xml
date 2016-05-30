@@ -13,19 +13,25 @@
 	tools:context="com.tkotko.invescan.MainActivity"
 	tools:showIn="@layout/app_bar_main">
 
-	<EditText
-		android:layout_width="wrap_content"
-		android:layout_height="wrap_content"
-		android:id="@+id/edtScanInput"
-		android:hint="@string/hintScanInput"
-		android:inputType="text" />
+	<android.support.design.widget.TextInputLayout
+		android:id="@+id/tlp_input"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content">
+
+		<EditText
+			android:id="@+id/edtScanInput"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:hint="@string/hintScanInput"
+			android:inputType="text" />
+	</android.support.design.widget.TextInputLayout>
 
 	<TextView
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
 		android:id="@+id/return_code_1"
 		android:text="@string/tvScanCode"
-		android:layout_below="@+id/edtScanInput"/>
+		android:layout_below="@+id/tlp_input"/>
 
 	<TextView
 		android:layout_width="wrap_content"

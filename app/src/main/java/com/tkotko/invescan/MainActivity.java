@@ -3,6 +3,7 @@ package com.tkotko.invescan;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -10,6 +11,7 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -39,13 +41,20 @@ import org.ksoap2.transport.HttpTransportSE;
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import com.tkotko.invescan.ERPXmlParser.Entry;
+import android.database.*;
+import java.text.*;
+import java.util.Locale;
+
+import android.database.sqlite.*;
 
 
 public class MainActivity extends AppCompatActivity
@@ -58,16 +67,25 @@ public class MainActivity extends AppCompatActivity
     //private String[] list = {"鉛筆","原子筆","鋼筆","毛筆","彩色筆"};
     private ArrayAdapter<String> listAdapter;
 
-    String url ="http://services.hanselandpetal.com/feeds/flowers.json";
-    private ArrayList<String> assetsList= new ArrayList<String>();
-    String ws_result;
-    TextView tvScanCode;
-    TextView tvScanCode2;
-    EditText edtScanInput;
+    private String url ="http://services.hanselandpetal.com/feeds/flowers.json";
+    private ArrayList<String> assetsList= new ArrayList<>();
+    private String ws_result;
+    private TextView tvScanCode;
+    private TextView tvScanCode2;
+    private EditText edtScanInput;
+    private TextView tvLogin;
+    private TextView tvLoginID;
 
-    ProgressDialog waiting_dialog;
-    String strErrorMsg;
-	
+    private ProgressDialog waiting_dialog;
+    private String strErrorMsg;
+
+    private SharedPreferences spref;
+
+    // 資料庫名稱
+    private static final String DB_NAME = "inventory.db";
+    // 資料庫版本，資料結構改變的時候要更改這個數字，通常是加一
+    private static final int DB_VERSION = 1;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -79,6 +97,46 @@ public class MainActivity extends AppCompatActivity
         tvScanCode = (TextView) findViewById(R.id.return_code_1);
         tvScanCode2 = (TextView) findViewById(R.id.return_code_2);
         listView = (ListView)findViewById(R.id.ws_Listview);
+
+        SQLiteHelper helper = new SQLiteHelper(this, DB_NAME, null, DB_VERSION);
+        final SQLiteDatabase db = helper.getWritableDatabase();
+		/*
+		//查詢SQLite取出資料放到Listview
+		//Cursor c = db.query("inve", new String[]{"barcode", "barcode_format"},
+		Cursor c = db.query("inve", null,
+							"_id >= ? and _id <= ?", new String[]{"1", "999"}, null, null, "_id desc");
+		int row = c.getCount();
+		int col = c.getColumnCount();
+		String row_value;
+		c.moveToFirst();
+
+		for (int i = 0; i < row; i++) {
+			row_value="";
+			for(int j = 0; j < col; j++){
+				if(j==0){
+					row_value=c.getString(j);
+				}else{
+					row_value=row_value+" "+c.getString(j);
+				}
+			}
+			assetsList.add(row_value);
+			c.moveToNext();
+		}
+		c.close();
+		listAdapter = new ArrayAdapter<>(MainActivity.this,android.R.layout.simple_list_item_1,assetsList);
+		listView.setAdapter(listAdapter);
+		*/
+
+        //Cursor cursor = db.rawQuery("select _id,_id||' '||barcode ibarcode, ins_date from inve",null);
+        Cursor cursor = db.rawQuery("select _id,barcode, ins_date from inve",null);
+        if (cursor != null && cursor.getCount() >= 0) {
+            //SimpleCursorAdapter adapter = new SimpleCursorAdapter(this, android.R.layout.simple_list_item_2, cursor,
+            //        new String[]{"ibarcode", "ins_date"}, new int[]{android.R.id.text1, android.R.id.text2}, 0);
+            SimpleCursorAdapter adapter = new SimpleCursorAdapter(this, R.layout.inve_list, cursor,
+                    new String[]{"_id","barcode", "ins_date"}, new int[]{R.id.db_id, R.id.db_barcode,R.id.db_ins_date}, 0);
+            listView.setAdapter(adapter);
+            //cursor.close();
+        }
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -103,12 +161,62 @@ public class MainActivity extends AppCompatActivity
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close){
+            @Override
+            public void onDrawerOpened(View drawerView) {
+                super.onDrawerOpened(drawerView);
+
+                File file = new File(getApplicationInfo().dataDir + "/shared_prefs", "userInfo.xml");
+                if (file.exists()) {
+                    spref = getSharedPreferences("userInfo", Context.MODE_PRIVATE);
+                    tvLoginID.setText(spref.getString("USER_EMAIL",""));
+                    tvLogin.setText(R.string.logout);
+                }else{
+                    tvLogin.setText(R.string.login);
+                }
+            }
+        };
         drawer.setDrawerListener(toggle);
         toggle.syncState();
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+        tvLogin = (TextView) navigationView.getHeaderView(0).findViewById(R.id.tvLogin);
+        tvLoginID = (TextView) navigationView.getHeaderView(0).findViewById(R.id.tvLoginID);
+        //判斷Login SharedPreferences檔是否存在
+        File file = new File(getApplicationInfo().dataDir + "/shared_prefs", "userInfo.xml");
+        if (file.exists()) {
+            spref = getSharedPreferences("userInfo", Context.MODE_PRIVATE);
+            tvLoginID.setText(spref.getString("USER_EMAIL",""));
+            tvLogin.setText(R.string.logout);
+        }else{
+            tvLogin.setText(R.string.login);
+        }
+        tvLogin.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //spref = getSharedPreferences("userInfo", Context.MODE_PRIVATE);
+                //SharedPreferences.Editor editor =spref.edit();
+                //editor.putString("USER_EMAIL", "");
+                //editor.commit();
+                File file = new File(getApplicationInfo().dataDir + "/shared_prefs", "userInfo.xml");
+                if (file.exists()) {
+                    boolean deleted = file.delete();
+                    if (deleted){
+                        tvLogin.setText(R.string.login);
+                        tvLoginID.setText("");
+                        Toast.makeText(mainactivity, "帳號已登出", Toast.LENGTH_LONG).show();
+                    }
+                }else{
+                    Intent i = new Intent(mainactivity,LoginActivity.class);
+                    startActivity(i);
+                }
+                DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+                drawer.closeDrawer(GravityCompat.START);
+            }
+        });
+
 
         //進入app時不要自動跳出鍵盤
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
@@ -126,6 +234,7 @@ public class MainActivity extends AppCompatActivity
                         || actionId == EditorInfo.IME_ACTION_DONE
                         || (event != null && KeyEvent.KEYCODE_ENTER == event.getKeyCode() && KeyEvent.ACTION_DOWN == event.getAction())) {
                     if (edtScanInput.getText() != null){
+                        //比對ListView中有無重覆資料
                         int iCount=0;
                         for (int i=0; i<assetsList.size(); i++){
                             //compareTo 比對相同回傳0,不同回傳-11
@@ -133,12 +242,33 @@ public class MainActivity extends AppCompatActivity
                                 iCount += 1;
                             }
                         }
-                        if (iCount==0){
+                        if (iCount==0){  //無重覆
+                            //加入ListView
                             assetsList.add(edtScanInput.getText().toString());
-                            listAdapter = new ArrayAdapter(MainActivity.this,android.R.layout.simple_list_item_1,assetsList);
+                            listAdapter = new ArrayAdapter<>(MainActivity.this,android.R.layout.simple_list_item_1,assetsList);
                             listView.setAdapter(listAdapter);
+
+                            //寫入SQLite
+                            ContentValues values = new ContentValues();
+                            values.put("barcode", edtScanInput.getText().toString());
+                            values.put("input_type", "M");
+                            spref = getSharedPreferences("userInfo", Context.MODE_PRIVATE);
+                            values.put("ins_user", spref.getString("USER_EMAIL",""));
+                            
+							Date dt=new Date();
+							SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.US);
+                            values.put("ins_date", sdf.format(dt));
+                            try {
+                                long id = db.insert("inve", null, values);
+                                tvScanCode2.setText(String.valueOf(id));
+                            } catch (SQLiteException e) {
+                                e.printStackTrace();
+                                Toast.makeText(mainactivity, e.toString(), Toast.LENGTH_LONG).show();
+                            }
+
+                            //ListView判斷有無資料
                             if (!assetsList.isEmpty()){
-                                tvScanCode2.setText(String.valueOf(listView.getAdapter().getCount()));
+                                //tvScanCode2.setText(String.valueOf(listView.getAdapter().getCount()));
                             }
                         }else{
                             Toast.makeText(mainactivity, "重複輸入", Toast.LENGTH_LONG).show();
@@ -244,9 +374,11 @@ public class MainActivity extends AppCompatActivity
             }
             if (iCount==0){
                 assetsList.add(edtScanInput.getText().toString());
-                listAdapter = new ArrayAdapter(MainActivity.this,android.R.layout.simple_list_item_1,assetsList);
+                listAdapter = new ArrayAdapter<>(MainActivity.this,android.R.layout.simple_list_item_1,assetsList);
                 listView.setAdapter(listAdapter);
                 Toast.makeText(mainactivity, scanResult.getContents(), Toast.LENGTH_LONG).show();
+
+
                 if (!assetsList.isEmpty()){
                     tvScanCode2.setText(String.valueOf(listView.getAdapter().getCount()));
                 }
@@ -338,7 +470,7 @@ public class MainActivity extends AppCompatActivity
         return true;
     }
 
-    public class wsGetHTTP extends AsyncTask<String,String,String> {
+    private class wsGetHTTP extends AsyncTask<String,String,String> {
 
         @Override
         protected void onPreExecute() {
@@ -347,8 +479,7 @@ public class MainActivity extends AppCompatActivity
 
         @Override
         protected String doInBackground(String... strings) {
-            String content =HttpURLConnect.getData(url);
-            return content;
+            return HttpURLConnect.getData(url);
         }
 
         @Override
@@ -367,8 +498,8 @@ public class MainActivity extends AppCompatActivity
             }
             //FlowerAdapter adapter = new FlowerAdapter(Fetch.this, R.layout.flowers_list_items, flowersList);
             //lv.setAdapter(adapter);
-            //listAdapter = new ArrayAdapter(getApplicationContext(),android.R.layout.simple_list_item_1,assetsList);
-            listAdapter = new ArrayAdapter(MainActivity.this,android.R.layout.simple_list_item_1,assetsList);
+            //listAdapter = new ArrayAdapter<>(getApplicationContext(),android.R.layout.simple_list_item_1,assetsList);
+            listAdapter = new ArrayAdapter<>(MainActivity.this,android.R.layout.simple_list_item_1,assetsList);
             listView.setAdapter(listAdapter);
             listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                 @Override
@@ -379,7 +510,7 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    public class wsGetERP extends AsyncTask<String,String,String> {
+    private class wsGetERP extends AsyncTask<String,String,String> {
 
         @Override
         protected void onPreExecute() {
@@ -498,20 +629,22 @@ public class MainActivity extends AppCompatActivity
                 }
             }
 
-            for (Entry entry : entries) {
-                parString.delete( 0, parString.length() );
-                //parString.append("料號:"+entry.item_id);
-                //parString.append("\n品名:"+entry.item_name);
-                //parString.append("\n規格:"+entry.item_spec);
-                parString.append("財編:"+entry.item_id);
-                parString.append("\n品名:"+entry.item_name);
-                parString.append("\n部門:"+entry.item_spec);
-                // If the user set the preference to include summary text,
-                // adds it to the display.
-                //if (pref) {
-                //    htmlString.append(entry.summary);
-                //}
-                assetsList.add(parString.toString());
+            if (entries != null) {
+                for (Entry entry : entries) {
+                    parString.delete( 0, parString.length() );
+                    //parString.append("料號:"+entry.item_id);
+                    //parString.append("\n品名:"+entry.item_name);
+                    //parString.append("\n規格:"+entry.item_spec);
+                    parString.append("財編:").append(entry.item_id);
+                    parString.append("\n品名:").append(entry.item_name);
+                    parString.append("\n部門:").append(entry.item_spec);
+                    // If the user set the preference to include summary text,
+                    // adds it to the display.
+                    //if (pref) {
+                    //    htmlString.append(entry.summary);
+                    //}
+                    assetsList.add(parString.toString());
+                }
             }
 
             return parString.toString();
@@ -527,7 +660,7 @@ public class MainActivity extends AppCompatActivity
                     .show();
             */
             if (s != "") {
-                listAdapter = new ArrayAdapter(MainActivity.this, android.R.layout.simple_list_item_1, assetsList);
+                listAdapter = new ArrayAdapter<>(MainActivity.this, android.R.layout.simple_list_item_1, assetsList);
                 listView.setAdapter(listAdapter);
             }else{
                 if (strErrorMsg != ""){

@@ -89,4 +89,6 @@
     <string name="prompt_ad_id">AD 帳號</string>
     <string name="prompt_ad_pwd">AD 密碼</string>
     <string name="action_ad_sign_in">AD 登入</string>
+    <string name="login">登入</string>
+    <string name="logout">登出</string>
 </resources>

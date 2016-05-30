@@ -24,9 +24,9 @@ dependencies {
     compile 'com.android.support:appcompat-v7:+'
     compile fileTree(include: ['*.jar'], dir: 'libs')
     testCompile 'junit:junit:4.12'
-    compile 'com.android.support:appcompat-v7:23.3.0'
+    compile 'com.android.support:appcompat-v7:23.4.0'
     //for NavigationView
-    compile 'com.android.support:design:23.3.0'
+    compile 'com.android.support:design:23.4.0'
     //for ksoap2
     compile 'com.google.code.ksoap2-android:ksoap2-android:3.5.0'
     compile files('libs/unboundid-ldapsdk-se.jar')
@@ -70,3 +70,6 @@ dependencies {
 dependencies {
     compile 'com.android.support:support-v4:23.+'
 }
+
+//for Firebase
+apply plugin: 'com.google.gms.google-services'

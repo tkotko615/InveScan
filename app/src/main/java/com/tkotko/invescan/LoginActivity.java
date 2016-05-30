@@ -3,6 +3,8 @@ package com.tkotko.invescan;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
@@ -22,6 +24,7 @@ import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -30,6 +33,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -88,6 +92,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     boolean login_flag = true;
     LDAPConnection c;
 
+    private SharedPreferences spref;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -132,6 +138,19 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                 attemptADLogin();
             }
         });
+
+        /*創建SharedPreferences
+        MODE_PRIVATE : 私用模式開啟該檔案,只有自己的應用程式可以存取該檔案
+        MODE_WORLD_READABLE 或 MODE_WORLD_WRITEABLE : 建立共用偏好設定檔案，則知道檔案識別碼的其他任何應用程式都能存取
+        */
+        spref = getSharedPreferences("userInfo", Context.MODE_PRIVATE);  //Context.MODE_PRIVATE = 0
+        //由SharedPreferences取出值
+        //File file = new File("/data/data/com.tkotko.invescan/shared_prefs","userInfo.xml");
+        File file = new File(getApplicationInfo().dataDir + "/shared_prefs","userInfo.xml");
+        if(file.exists()){
+            mEmailView.setText(spref.getString("USER_EMAIL", ""));
+            mPasswordView.setText(spref.getString("USER_PWD", ""));
+        }
 
     }
 
@@ -531,6 +550,12 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             showProgress(false);
 
             if (success) {
+                //將資料存入SharedPreferences
+                SharedPreferences.Editor editor =spref.edit();
+                editor.putString("USER_EMAIL", mEmail);
+                editor.putString("USER_PWD", mPassword);
+                editor.commit();
+
                 finish();
             } else {
                 mPasswordView.setError(getString(R.string.error_incorrect_password));
