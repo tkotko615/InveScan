@@ -1,5 +1,7 @@
 package com.tkotko.invescan;
 
+import android.support.annotation.Nullable;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -7,6 +9,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class HttpURLConnect {
+    @Nullable
     public static String getData(String uri){
 
         BufferedReader reader = null;

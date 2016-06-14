@@ -100,8 +100,10 @@ public class MainActivity extends AppCompatActivity
 
         SQLiteHelper helper = new SQLiteHelper(this, DB_NAME, null, DB_VERSION);
         final SQLiteDatabase db = helper.getWritableDatabase();
-		/*
-		//查詢SQLite取出資料放到Listview
+
+		//查詢 SQLite 取出資料放到 ListView ====================================================================
+        /*
+		//方法一:使用db.query,並搭配ArrayList
 		//Cursor c = db.query("inve", new String[]{"barcode", "barcode_format"},
 		Cursor c = db.query("inve", null,
 							"_id >= ? and _id <= ?", new String[]{"1", "999"}, null, null, "_id desc");
@@ -127,15 +129,20 @@ public class MainActivity extends AppCompatActivity
 		listView.setAdapter(listAdapter);
 		*/
 
+        //方法二:使用db.rawQuery,並搭配 SimpleCursorAdapter
         //Cursor cursor = db.rawQuery("select _id,_id||' '||barcode ibarcode, ins_date from inve",null);
-        Cursor cursor = db.rawQuery("select _id,barcode, ins_date from inve",null);
+        Cursor cursor = db.rawQuery("select _id,barcode,ins_date,ins_user,input_type from inve",null);
         if (cursor != null && cursor.getCount() >= 0) {
+            //1.使用android內建的 ListView
             //SimpleCursorAdapter adapter = new SimpleCursorAdapter(this, android.R.layout.simple_list_item_2, cursor,
             //        new String[]{"ibarcode", "ins_date"}, new int[]{android.R.id.text1, android.R.id.text2}, 0);
+            //2.使用自訂的 ListView
             SimpleCursorAdapter adapter = new SimpleCursorAdapter(this, R.layout.inve_list, cursor,
-                    new String[]{"_id","barcode", "ins_date"}, new int[]{R.id.db_id, R.id.db_barcode,R.id.db_ins_date}, 0);
+                    new String[]{"_id","barcode", "ins_date", "ins_user", "input_type"},
+                    new int[]{R.id.db_id, R.id.db_barcode,R.id.db_ins_date,R.id.db_ins_user,R.id.db_input_type}, 0);
             listView.setAdapter(adapter);
-            //cursor.close();
+
+            //cursor.close();  //不能直接close,因為已指派給adapter
         }
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -183,6 +190,7 @@ public class MainActivity extends AppCompatActivity
         navigationView.setNavigationItemSelectedListener(this);
 
         tvLogin = (TextView) navigationView.getHeaderView(0).findViewById(R.id.tvLogin);
+        //tvLogin = (TextView) View.inflate(this,R.layout.nav_header_main,null).findViewById(R.id.tvLogin);
         tvLoginID = (TextView) navigationView.getHeaderView(0).findViewById(R.id.tvLoginID);
         //判斷Login SharedPreferences檔是否存在
         File file = new File(getApplicationInfo().dataDir + "/shared_prefs", "userInfo.xml");
@@ -295,9 +303,23 @@ public class MainActivity extends AppCompatActivity
     }
 
 	private void initiateScanning(IntentIntegrator integrator){
-        //讓直向也能掃描(預設只能橫向)
-		integrator.setCaptureActivity(CaptureActivityAnyOrientation.class);
-        integrator.setOrientationLocked(false);
+        //SharedPreferences sp = getSharedPreferences("pref_general",0);
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+
+        //掃描方向(Zxing預設只能橫向)
+        String str_orientation = prefs.getString("list_scan_orientation","-1");
+        switch (str_orientation){
+            case "1":  //直向
+                integrator.setCaptureActivity(CaptureActivityVerticalOrientation.class);
+                integrator.setOrientationLocked(false);
+                break;
+            case "0":  //橫向
+                break;
+            case "-1":  //自動旋轉(依感應器)
+                integrator.setCaptureActivity(CaptureActivityAnyOrientation.class);
+                integrator.setOrientationLocked(false);
+        }
+
         //指定允許掃描的barcode格式
 		integrator.setDesiredBarcodeFormats(IntentIntegrator.ALL_CODE_TYPES);
         //掃描視窗下排顯示的文字
@@ -307,9 +329,6 @@ public class MainActivity extends AppCompatActivity
 
 		//是否播放提示音
         integrator.setBeepEnabled(false);
-        //由Setting取值
-        //SharedPreferences sp = getSharedPreferences("pref_general",0);
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         boolean sw_beep = prefs.getBoolean("swh_scan_beep",false);
         if (sw_beep) {
             integrator.setBeepEnabled(true);

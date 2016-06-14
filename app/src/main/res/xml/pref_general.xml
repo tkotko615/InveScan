@@ -3,7 +3,16 @@
     <SwitchPreference
         android:defaultValue="true"
         android:key="swh_scan_beep"
-        android:title="@string/swh_scan_beep_title" />
+        android:title="@string/pref_title_scan_beep" />
+
+    <ListPreference
+        android:defaultValue="-1"
+        android:entries="@array/pref_scan_orientation_list_titles"
+        android:entryValues="@array/pref_scan_orientation_list_values"
+        android:key="list_scan_orientation"
+        android:negativeButtonText="@null"
+        android:positiveButtonText="@null"
+        android:title="@string/pref_title_scan_orientation" />
 
     <SwitchPreference
         android:defaultValue="true"

@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 class SQLiteHelper extends SQLiteOpenHelper {
 
+    //建構子
     SQLiteHelper(Context context, String name, SQLiteDatabase.CursorFactory factory, int version) {
         super(context, name, factory, version);
     }
@@ -24,6 +25,7 @@ class SQLiteHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
+        //如果資料庫不存在則創建
         final String create ="CREATE  TABLE IF NOT EXISTS inve " +
             "(_id INTEGER PRIMARY KEY  NOT NULL , " +
 			"barcode VARCHAR, " +
@@ -45,6 +47,7 @@ class SQLiteHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        //如資料庫版本更改則刪掉重建
         final String drop ="DROP TABLE IF EXISTS inve";
         db.execSQL(drop);
         onCreate(db);

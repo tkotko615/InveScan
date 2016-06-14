@@ -17,7 +17,20 @@
     <!-- Example General settings -->
     <string name="pref_header_general">General</string>
 
-    <string name="swh_scan_beep_title">掃描時是否播放提示音</string>
+    <!--掃描時是否播放提示音-->
+    <string name="pref_title_scan_beep">掃描時是否播放提示音</string>
+    <!--掃描時方向:固定直向/固定橫向/自動旋轉-->
+    <string name="pref_title_scan_orientation">掃描方向</string>
+    <string-array name="pref_scan_orientation_list_titles">
+        <item>固定直向</item>
+        <item>固定橫向</item>
+        <item>自動旋轉</item>
+    </string-array>
+    <string-array name="pref_scan_orientation_list_values">
+        <item>1</item>
+        <item>0</item>
+        <item>-1</item>
+    </string-array>
 
     <string name="pref_title_social_recommendations">Enable social recommendations</string>
     <string name="pref_description_social_recommendations">Recommendations for people to contact
